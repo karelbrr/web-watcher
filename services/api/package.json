@@ -1,0 +1,17 @@
+{
+  "name": "@web-watcher/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@web-watcher/shared": "*",
+    "fastify": "^5.0.0",
+    "@sinclair/typebox": "^0.33.0",
+    "mongodb": "^6.10.0"
+  }
+}
