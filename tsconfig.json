@@ -5,6 +5,7 @@
     { "path": "services/api" },
     { "path": "services/worker" },
     { "path": "services/fetcher" },
-    { "path": "services/notifier" }
+    { "path": "services/notifier" },
+    { "path": "scripts" }
   ]
 }

@@ -6,3 +6,8 @@ One line per decision: what and why. Newest at the bottom.
   collection modules, because the services share the Mongo model and the TS types.
 - 2026-10-18: Native MongoDB driver, no ODM; one module per collection owns its type, indexes and
   read/write functions.
+- 2026-10-19: Indexes are created by `npm run ensure-indexes` at deploy time, never by a service at
+  startup: an index build on a large collection takes minutes and would block every restart, and four
+  services sharing the collections would all race to do the same work.
+- 2026-10-19: `pages` is unique on `url` + `contentHash`, not on `url` alone, so a page whose content
+  changed is stored again as a new snapshot while an unchanged page is rejected by the index.
