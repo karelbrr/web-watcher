@@ -9,9 +9,10 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@fastify/type-provider-typebox": "^5.2.0",
+    "@sinclair/typebox": "^0.34.0",
     "@web-watcher/shared": "*",
     "fastify": "^5.0.0",
-    "@sinclair/typebox": "^0.33.0",
     "mongodb": "^6.10.0"
   }
 }

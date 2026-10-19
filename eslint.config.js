@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-    { ignores: ["**/dist/**", "**/node_modules/**"] },
+    { ignores: ["**/dist/**", "**/node_modules/**", "eslint.config.js"] },
     js.configs.recommended,
     ...tseslint.configs.recommendedTypeChecked,
     {
@@ -14,6 +14,8 @@ export default tseslint.config(
         },
         rules: {
             "@typescript-eslint/no-floating-promises": "error",
+            // Fastify plugins and route handlers are declared async by contract, with or without an await inside.
+            "@typescript-eslint/require-await": "off",
         },
     },
 );
