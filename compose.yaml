@@ -10,10 +10,17 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+  test-site:
+    image: nginx:alpine
+    volumes:
+      - ./test-site:/usr/share/nginx/html:ro
+    ports:
+      - "127.0.0.1:8080:80"
+
   mongo:
     image: mongo:8
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:27018:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:

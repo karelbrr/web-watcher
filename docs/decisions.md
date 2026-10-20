@@ -11,3 +11,9 @@ One line per decision: what and why. Newest at the bottom.
   services sharing the collections would all race to do the same work.
 - 2026-10-19: `pages` is unique on `url` + `contentHash`, not on `url` alone, so a page whose content
   changed is stored again as a new snapshot while an unchanged page is rejected by the index.
+- 2026-10-20: The Mongo container publishes host port 27018, not 27017, because a Homebrew `mongod`
+  for work already owns 27017 on this machine and silently received every host-side connection.
+  Inside the Compose network the services keep `mongo:27017`.
+- 2026-10-20: `trackers.nextCheckAt` has a plain index, not a partial one on unclaimed trackers,
+  because MongoDB rejects `$exists: false` in a partial filter. The worker's query adds
+  `claim: {$exists: false}` and the handful of in-flight trackers are filtered after the index scan.
