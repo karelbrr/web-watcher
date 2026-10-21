@@ -1,9 +1,10 @@
 import {Type} from "@sinclair/typebox";
 import type {FastifyPluginAsync} from "fastify";
-import {Db, MongoServerError, ObjectId} from "mongodb";
+import {type Db, ObjectId} from "mongodb";
 import type {TypeBoxTypeProvider} from "@fastify/type-provider-typebox";
-import {findOrCreatePage, findPageById, insertTracker} from "@web-watcher/shared";
+import {findObservations, findPageById, findTrackerById, findTrackersByPage, insertTracker} from "@web-watcher/shared";
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const trackerKind = Type.Union([
     Type.Literal("price"), Type.Literal("availability"), Type.Literal("number"),
@@ -26,42 +27,78 @@ const trackerBody = Type.Object({
     condition: Type.Optional(trackerCondition),
 });
 
+const idParams = Type.Object({id: Type.String()});
 
-export const trackerRoutes: FastifyPluginAsync<{ db: Db }> = async (app, {db}) => {
-        const typed = app.withTypeProvider<TypeBoxTypeProvider>();
+const historyQuery = Type.Object({
+    from: Type.Optional(Type.String({format: "date-time"})),
+    to: Type.Optional(Type.String({format: "date-time"})),
+});
 
-        typed.post("/trackers", {schema: {body: trackerBody}}, async (request, reply) => {
-            const {pageId, ...draft} = request.body;
+export const trackersRoutes: FastifyPluginAsync<{ db: Db }> = async (app, {db}) => {
+    const typed = app.withTypeProvider<TypeBoxTypeProvider>();
 
-            try {
-                await findOrCreatePage(db, pageId);
-            } catch {
-                return reply.code(404).send({message: "page not found"});
-            }
+    typed.post("/trackers", {schema: {body: trackerBody}}, async (request, reply) => {
+        const {pageId, ...draft} = request.body;
+        if (!ObjectId.isValid(pageId)) {
+            return reply.code(400).send({message: "invalid pageId"});
+        }
 
-            try {
-                const trackerId = await insertTracker(db, {...draft, pageId: new ObjectId(pageId)})
-                return reply.code(201).send({trackerId, trackerCreated: true});
+        const page = await findPageById(db, new ObjectId(pageId));
+        if (!page) {
+            return reply.code(404).send({message: "page not found"});
+        }
 
-            } catch (error) {
-                if (error instanceof MongoServerError && error.code === 11000) {
-                    return reply.code(200).send({trackerCreated: false});
-                }
-                throw error;
-            }
-        });
+        const tracker = await insertTracker(db, {...draft, pageId: page._id});
+        return reply.code(201).send(tracker);
+    });
 
-        typed.get("/tracker/:id", {schema: {params: Type.Object({id: Type.String()})}}, async (request, reply) => {
-            const {id} = request.params;
-            if (!ObjectId.isValid(id)) {
-                return reply.code(400).send({message: "invalid id"});
-            }
+    typed.get("/trackers/:id", {schema: {params: idParams}}, async (request, reply) => {
+        const {id} = request.params;
+        if (!ObjectId.isValid(id)) {
+            return reply.code(400).send({message: "invalid id"});
+        }
 
-            const tracker = await findPageById(db, new ObjectId(id));
-            if (!tracker) {
-                return reply.code(404).send({message: "page not found"});
-            }
-            return tracker;
-        });
-    }
-;
+        const tracker = await findTrackerById(db, new ObjectId(id));
+        if (!tracker) {
+            return reply.code(404).send({message: "tracker not found"});
+        }
+        return tracker;
+    });
+
+    typed.get("/pages/:id/trackers", {schema: {params: idParams}}, async (request, reply) => {
+        const {id} = request.params;
+        if (!ObjectId.isValid(id)) {
+            return reply.code(400).send({message: "invalid id"});
+        }
+
+        const page = await findPageById(db, new ObjectId(id));
+        if (!page) {
+            return reply.code(404).send({message: "page not found"});
+        }
+        return findTrackersByPage(db, page._id);
+    });
+
+    typed.get("/trackers/:id/history", {
+        schema: {
+            params: idParams,
+            querystring: historyQuery
+        }
+    }, async (request, reply) => {
+        const {id} = request.params;
+        if (!ObjectId.isValid(id)) {
+            return reply.code(400).send({message: "invalid id"});
+        }
+
+        const to = request.query.to ? new Date(request.query.to) : new Date();
+        const from = request.query.from ? new Date(request.query.from) : new Date(to.getTime() - WEEK_MS);
+        if (from > to) {
+            return reply.code(400).send({message: "from must not be after to"});
+        }
+
+        const tracker = await findTrackerById(db, new ObjectId(id));
+        if (!tracker) {
+            return reply.code(404).send({message: "tracker not found"});
+        }
+        return findObservations(db, tracker._id, from, to);
+    });
+};
