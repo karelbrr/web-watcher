@@ -12,6 +12,7 @@
     "check": "tsc --build && npm run lint",
     "lint": "eslint .",
     "ensure-indexes": "tsx scripts/ensure-indexes.ts",
+    "seed-observations": "tsx scripts/seed-observations.ts",
     "dev:api": "npm run dev --workspace services/api",
     "dev:worker": "npm run dev --workspace services/worker",
     "dev:fetcher": "npm run dev --workspace services/fetcher",

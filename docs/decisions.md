@@ -17,3 +17,11 @@ One line per decision: what and why. Newest at the bottom.
 - 2026-10-20: `trackers.nextCheckAt` has a plain index, not a partial one on unclaimed trackers,
   because MongoDB rejects `$exists: false` in a partial filter. The worker's query adds
   `claim: {$exists: false}` and the handful of in-flight trackers are filtered after the index scan.
+- 2026-10-21: `observations` queries always lead with `trackerId` and a `timestamp` range; a filter on
+  `value` is allowed only behind them. Measured on 78k observations (274 buckets): tracker + one
+  week reads 25 buckets in 3 ms, tracker alone scans all 274 in 22 ms, `value` alone scans all 274
+  and unpacks every observation in 42 ms. Nothing inside a bucket is indexed.
+- 2026-10-21: The 90-day TTL on `observations` deleted most of the seed within a minute of insertion
+  (3.3 years generated, 90 days kept). Expected, and the first proof the retention works.
+- 2026-10-21: Open: `value` is stored as the raw element text ("4 790 Kč"). Aggregating prices needs
+  `$replaceAll` + `$toInt` per document; revisit once it is clear what gets computed from observations.

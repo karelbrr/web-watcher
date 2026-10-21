@@ -3,7 +3,7 @@ import {type Collection, type Db, ObjectId} from "mongodb";
 export interface Observation {
     _id: ObjectId;
     timestamp: Date;
-    observationId: ObjectId;
+    trackerId: ObjectId;
     snapshotId?: ObjectId;
     value?: string;
     error?: string;
