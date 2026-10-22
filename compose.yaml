@@ -8,22 +8,31 @@ services:
       FETCHER_URL: http://fetcher:3001
     ports:
       - "127.0.0.1:3000:3000"
+    networks:
+      - internal
     depends_on:
       mongo:
         condition: service_healthy
       fetcher:
         condition: service_started
 
+  # The only service on the egress network: nothing else can reach the internet.
   fetcher:
     build:
       context: .
       dockerfile: services/fetcher/Dockerfile
+    networks:
+      - internal
+      - egress
+
   test-site:
     image: nginx:alpine
     volumes:
       - ./test-site:/usr/share/nginx/html:ro
     ports:
       - "127.0.0.1:8080:80"
+    networks:
+      - internal
 
   mongo:
     image: mongo:8
@@ -31,12 +40,19 @@ services:
       - "127.0.0.1:27018:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - internal
     healthcheck:
       test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
+
+networks:
+  internal:
+    internal: true
+  egress:
 
 volumes:
   mongo-data:

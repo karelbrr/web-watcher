@@ -25,3 +25,7 @@ One line per decision: what and why. Newest at the bottom.
   (3.3 years generated, 90 days kept). Expected, and the first proof the retention works.
 - 2026-10-21: Open: `value` is stored as the raw element text ("4 790 Kč"). Aggregating prices needs
   `$replaceAll` + `$toInt` per document; revisit once it is clear what gets computed from observations.
+- 2026-10-22: Two Compose networks: `internal` (`internal: true`, no route out) for `mongo`, `api`,
+  `test-site` and the future `worker` and `notifier`, and `egress` for `fetcher` alone. The fetcher
+  is the only service that needs the internet, so a compromised API or worker has nowhere to send
+  data and nothing to download. Published host ports keep working on an internal network.
