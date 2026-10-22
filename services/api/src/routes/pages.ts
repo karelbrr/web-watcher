@@ -2,59 +2,31 @@ import type {FastifyPluginAsync} from "fastify";
 import type {TypeBoxTypeProvider} from "@fastify/type-provider-typebox";
 import {Type} from "@sinclair/typebox";
 import {type Db, MongoServerError, ObjectId} from "mongodb";
-import {findOrCreatePage, findPageById, insertSnapshot,} from "@web-watcher/shared";
-
+import {type FetchResult, findOrCreatePage, findPageById, insertSnapshot} from "@web-watcher/shared";
 import {createHash} from "node:crypto";
 
-const FETCH_TIMEOUT_MS = 15_000;
-const MAX_HTML_BYTES = 10 * 1024 * 1024;
-
-export const pagesRoutes: FastifyPluginAsync<{ db: Db }> = async (app, {db}) => {
+export const pagesRoutes: FastifyPluginAsync<{ db: Db; fetcherUrl: string }> = async (app, {db, fetcherUrl}) => {
     const typed = app.withTypeProvider<TypeBoxTypeProvider>();
 
     typed.post("/pages", {schema: {body: Type.Object({url: Type.String({format: "uri"})})}}, async (request, reply) => {
         const {url} = request.body;
 
-        // "uri" format also accepts ftp:, file: or mailto:, which fetch cannot download.
-        const protocol = new URL(url).protocol;
-        if (protocol !== "http:" && protocol !== "https:") {
-            return reply.code(400).send({message: "only http and https urls are supported"});
-        }
-
-        let response: Response;
+        let fetcherResponse: Response;
         try {
-            response = await fetch(url, {signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), redirect: "follow"});
-        } catch (error) {
-            if (error instanceof DOMException && error.name === "TimeoutError") {
-                return reply.code(504).send({message: `page did not answer within ${FETCH_TIMEOUT_MS / 1000} s`});
-            }
-            return reply.code(502).send({message: "page could not be fetched"});
-        }
-
-        if (!response.ok) {
-            return reply.code(502).send({message: `page answered ${response.status}`});
-        }
-
-        const contentType = response.headers.get("content-type") ?? "";
-        if (!contentType.includes("text/html")) {
-            return reply.code(415).send({message: `page is ${contentType || "of unknown type"}, not text/html`});
-        }
-
-        const contentLength = Number(response.headers.get("content-length"));
-        if (contentLength > MAX_HTML_BYTES) {
-            return reply.code(413).send({message: `page is larger than ${MAX_HTML_BYTES} bytes`});
-        }
-
-        let html: string;
-        try {
-            html = await response.text();
+            fetcherResponse = await fetch(`${fetcherUrl}/fetch`, {
+                method: "POST",
+                headers: {"content-type": "application/json"},
+                body: JSON.stringify({url}),
+            });
         } catch {
-            return reply.code(502).send({message: "page body could not be read"});
+            return reply.code(502).send({message: "fetcher unavailable"});
         }
-        // A server that sends no content-length is only measured once the body is read.
-        if (Buffer.byteLength(html) > MAX_HTML_BYTES) {
-            return reply.code(413).send({message: `page is larger than ${MAX_HTML_BYTES} bytes`});
+        // The fetcher already answers 400/413/415/502/504 with a message; pass it through unchanged.
+        if (!fetcherResponse.ok) {
+            const {message} = (await fetcherResponse.json()) as {message: string};
+            return reply.code(fetcherResponse.status).send({message});
         }
+        const {html} = (await fetcherResponse.json()) as FetchResult;
 
         const contentHash = createHash("sha256").update(html).digest("hex");
         const page = await findOrCreatePage(db, url);

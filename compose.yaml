@@ -5,11 +5,19 @@ services:
       dockerfile: services/api/Dockerfile
     environment:
       MONGODB_URI: mongodb://mongo:27017/web-watcher
+      FETCHER_URL: http://fetcher:3001
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
       mongo:
         condition: service_healthy
+      fetcher:
+        condition: service_started
+
+  fetcher:
+    build:
+      context: .
+      dockerfile: services/fetcher/Dockerfile
   test-site:
     image: nginx:alpine
     volumes:

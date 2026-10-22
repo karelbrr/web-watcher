@@ -4,10 +4,10 @@ import {pagesRoutes} from "./routes/pages.js";
 import {trackersRoutes} from "./routes/trackers.js";
 import {eventsRoutes} from "./routes/events.js";
 
-export async function buildApp(db: Db): Promise<FastifyInstance> {
+export async function buildApp(db: Db, fetcherUrl: string): Promise<FastifyInstance> {
     const app = Fastify({logger: true});
-    app.get("/health", async () => ({ok: true}));
-    await app.register(pagesRoutes, {db});
+    app.get("/health", () => ({ok: true}));
+    await app.register(pagesRoutes, {db, fetcherUrl});
     await app.register(trackersRoutes, {db});
     await app.register(eventsRoutes, {db});
     return app;
