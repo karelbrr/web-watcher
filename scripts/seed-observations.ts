@@ -25,10 +25,20 @@ try {
             for (let i = offset; i < offset + BATCH_SIZE; i++) {
                 const timestamp = new Date(now - i * STEP_MS);
                 if (i % ERROR_EVERY === 0) {
-                    batch.push({_id: new ObjectId(), timestamp, trackerId: tracker._id, error: "selector matched nothing"});
+                    batch.push({
+                        _id: new ObjectId(),
+                        timestamp,
+                        trackerId: tracker._id,
+                        error: "selector matched nothing"
+                    });
                 } else {
                     const price = BASE_PRICE + Math.round((Math.random() * 2 - 1) * PRICE_SPREAD);
-                    batch.push({_id: new ObjectId(), timestamp, trackerId: tracker._id, value: `${formatPrice(price)} Kč`});
+                    batch.push({
+                        _id: new ObjectId(),
+                        timestamp,
+                        trackerId: tracker._id,
+                        value: `${formatPrice(price)} Kč`
+                    });
                 }
             }
             await getObservations(db).insertMany(batch, {ordered: false});

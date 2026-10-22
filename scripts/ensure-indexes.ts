@@ -1,5 +1,5 @@
 import {
-    connectMongo, ensureObservationsCollection,
+    connectMongo, ensureObservationsCollection, EVENT_INDEXES, getEvents,
     getPages,
     getSnapshots,
     PAGE_INDEXES,
@@ -19,6 +19,8 @@ try {
     console.log("pages:", (await getPages(db).createIndexes(PAGE_INDEXES)).join(", "));
     console.log("snapshots:", (await getSnapshots(db).createIndexes(SNAPSHOT_INDEXES)).join(", "));
     console.log("trackers:", (await getSnapshots(db).createIndexes(TRACKER_INDEXES)).join(", "));
+    console.log("events:", (await getEvents(db).createIndexes(EVENT_INDEXES)).join(", "));
+
 } finally {
     await client.close();
 }
