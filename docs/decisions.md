@@ -29,3 +29,18 @@ One line per decision: what and why. Newest at the bottom.
   `test-site` and the future `worker` and `notifier`, and `egress` for `fetcher` alone. The fetcher
   is the only service that needs the internet, so a compromised API or worker has nowhere to send
   data and nothing to download. Published host ports keep working on an internal network.
+- 2026-10-22: Correction: a container attached only to an `internal: true` network gets no
+  published host ports (no NAT, no port mapping), which took Mongo, the API and the test page off
+  the host. The dev `compose.yaml` therefore uses a plain `internal` bridge; the egress restriction
+  moves to a production override that publishes no ports. Seen in `docker compose ps` showing
+  `27017/tcp` instead of `127.0.0.1:27018->27017/tcp`.
+- 2026-10-23: The fetcher publishes host port 3001 in the dev `compose.yaml` so the worker can run
+  natively against it (`FETCHER_URL=http://localhost:3001`). The containerised fetcher resolves
+  `http://test-site/`, a native one would not, so this beats running `dev:fetcher` on the host.
+  The production override publishes no fetcher port.
+- 2026-10-23: After a Compose network definition changes, every container on it must be recreated
+  (`docker compose down && up -d`, or `--force-recreate`). Containers older than the recreated
+  network were reattached without their service-name DNS aliases: `mongo` and `test-site` resolved
+  from nowhere while container names did, the API crashed on `ENOTFOUND mongo` and the fetcher
+  answered 502 for `http://test-site/`. First check for "cannot connect" between services:
+  `getent hosts <service>` inside the calling container.

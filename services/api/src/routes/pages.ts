@@ -2,7 +2,7 @@ import type {FastifyPluginAsync} from "fastify";
 import type {TypeBoxTypeProvider} from "@fastify/type-provider-typebox";
 import {Type} from "@sinclair/typebox";
 import {type Db, MongoServerError, ObjectId} from "mongodb";
-import {type FetchResult, findOrCreatePage, findPageById, insertSnapshot} from "@web-watcher/shared";
+import {fetchPage, findOrCreatePage, findPageById, insertSnapshot} from "@web-watcher/shared";
 import {createHash} from "node:crypto";
 
 export const pagesRoutes: FastifyPluginAsync<{ db: Db; fetcherUrl: string }> = async (app, {db, fetcherUrl}) => {
@@ -11,22 +11,12 @@ export const pagesRoutes: FastifyPluginAsync<{ db: Db; fetcherUrl: string }> = a
     typed.post("/pages", {schema: {body: Type.Object({url: Type.String({format: "uri"})})}}, async (request, reply) => {
         const {url} = request.body;
 
-        let fetcherResponse: Response;
-        try {
-            fetcherResponse = await fetch(`${fetcherUrl}/fetch`, {
-                method: "POST",
-                headers: {"content-type": "application/json"},
-                body: JSON.stringify({url}),
-            });
-        } catch {
-            return reply.code(502).send({message: "fetcher unavailable"});
-        }
         // The fetcher already answers 400/413/415/502/504 with a message; pass it through unchanged.
-        if (!fetcherResponse.ok) {
-            const {message} = (await fetcherResponse.json()) as {message: string};
-            return reply.code(fetcherResponse.status).send({message});
+        const outcome = await fetchPage(fetcherUrl, url);
+        if (!outcome.ok) {
+            return reply.code(outcome.status).send({message: outcome.message});
         }
-        const {html} = (await fetcherResponse.json()) as FetchResult;
+        const {html} = outcome.result;
 
         const contentHash = createHash("sha256").update(html).digest("hex");
         const page = await findOrCreatePage(db, url);

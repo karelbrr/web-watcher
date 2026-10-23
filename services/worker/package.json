@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@web-watcher/shared": "*",
-    "mongodb": "^6.10.0"
+    "mongodb": "^6.10.0",
+    "pino": "^9.5.0"
   }
 }

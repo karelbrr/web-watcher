@@ -52,3 +52,20 @@ export async function findTrackerById(db: Db, id: ObjectId): Promise<Tracker | n
 export async function findTrackersByPage(db: Db, pageId: ObjectId): Promise<Tracker[]> {
     return getTrackers(db).find({pageId}).sort({createdAt: 1}).toArray();
 }
+
+export async function claimDueTracker(db: Db, worker: string, now: Date): Promise<Tracker | null> {
+    return getTrackers(db).findOneAndUpdate(
+        {nextCheckAt: {$lte: now}, claim: {$exists: false}},
+        {$set: {claim: {worker, since: now}}},
+        {sort: {nextCheckAt: 1}, returnDocument: "after"},
+    );
+}
+
+export async function releaseTracker(db: Db, id: ObjectId, nextCheckAt: Date): Promise<void> {
+    await getTrackers(db).updateOne({_id: id}, {$set: {nextCheckAt}, $unset: {claim: ""}});
+}
+
+export async function releaseClaimsOf(db: Db, worker: string): Promise<number> {
+    const result = await getTrackers(db).updateMany({"claim.worker": worker}, {$unset: {claim: ""}});
+    return result.modifiedCount;
+}

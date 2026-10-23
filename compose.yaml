@@ -21,6 +21,10 @@ services:
     build:
       context: .
       dockerfile: services/fetcher/Dockerfile
+    # Published only for running the worker natively during development; the production
+    # override drops it, the fetcher is then reachable from other containers alone.
+    ports:
+      - "127.0.0.1:3001:3001"
     networks:
       - internal
       - egress
@@ -49,9 +53,11 @@ services:
       retries: 5
       start_period: 20s
 
+# `internal` is a plain bridge here because Docker does not publish host ports for a container
+# that sits only on an `internal: true` network, and development needs Mongo, the API and the
+# test page on the host. The production override marks it internal and publishes nothing.
 networks:
   internal:
-    internal: true
   egress:
 
 volumes:
