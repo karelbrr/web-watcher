@@ -31,13 +31,15 @@ while (running) {
     }
     const trackerLog = log.child({trackerId: tracker._id, name: tracker.name});
     trackerLog.info("claimed");
+    // Null when the check produced no value; the tracker then keeps its previous lastValue.
+    let value: string | null = null;
     try {
-        await checkTracker(db, config.fetcherUrl, tracker, now, trackerLog);
+        value = await checkTracker(db, config.fetcherUrl, tracker, now, trackerLog);
     } catch (error) {
         // The tracker is released below whatever happened, otherwise it would stay locked until a restart.
         trackerLog.error({error}, "check failed");
     }
-    await releaseTracker(db, tracker._id, new Date(now.getTime() + tracker.interval * 1000));
+    await releaseTracker(db, tracker._id, new Date(now.getTime() + tracker.interval * 1000), value);
 }
 
 await client.close();

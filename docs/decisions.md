@@ -44,3 +44,7 @@ One line per decision: what and why. Newest at the bottom.
   from nowhere while container names did, the API crashed on `ENOTFOUND mongo` and the fetcher
   answered 502 for `http://test-site/`. First check for "cannot connect" between services:
   `getent hosts <service>` inside the calling container.
+- 2026-10-23: Open: `trackers` has no unique index, so two trackers with the same `pageId` and
+  `selector` can exist (happened twice by a repeated POST while testing). Probably add a unique
+  index on `pageId + selector` and answer 409 from `POST /trackers`; decide once the AI proposal
+  flow exists, since it may want to re-propose an existing signal.

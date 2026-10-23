@@ -4,4 +4,6 @@ export * from "./snapshots.js";
 export * from "./trackers.js";
 export * from "./observations.js";
 export * from "./events.js";
-export * from "./fetch-result.js";export * from "./fetcher-client.js";
+export * from "./fetch-result.js";
+export * from "./fetcher-client.js";
+export * from "./extract.js";

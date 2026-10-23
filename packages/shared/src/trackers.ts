@@ -61,8 +61,11 @@ export async function claimDueTracker(db: Db, worker: string, now: Date): Promis
     );
 }
 
-export async function releaseTracker(db: Db, id: ObjectId, nextCheckAt: Date): Promise<void> {
-    await getTrackers(db).updateOne({_id: id}, {$set: {nextCheckAt}, $unset: {claim: ""}});
+export async function releaseTracker(db: Db, id: ObjectId, nextCheckAt: Date, lastValue: string | null): Promise<void> {
+    await getTrackers(db).updateOne({_id: id}, {
+        $set: {nextCheckAt, ...(lastValue !== null && {lastValue})},
+        $unset: {claim: ""},
+    });
 }
 
 export async function releaseClaimsOf(db: Db, worker: string): Promise<number> {
